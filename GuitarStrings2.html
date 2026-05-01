@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -389,7 +388,6 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
   </style>
-
 </head>
 <body>
 
@@ -405,7 +403,6 @@
   </header>
 
   <!-- iOS PWA install hint -->
-
   <div class="install-banner" id="installBanner">
     <h4>📲 התקן כאפליקציה</h4>
     <p>כדי להשתמש ב-GuitarStrings כאפליקציה נפרדת:</p>
@@ -429,7 +426,6 @@
   </div>
 
   <!-- ADD GUITAR MODAL -->
-
   <div id="addModal" class="modal">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -450,7 +446,6 @@
   </div>
 
   <!-- EDIT GUITAR MODAL -->
-
   <div id="editModal" class="modal">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -471,7 +466,6 @@
   </div>
 
   <!-- LOG MODAL -->
-
   <div id="logModal" class="modal">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -492,6 +486,24 @@
     </div>
   </div>
 
+  <!-- EDIT LOG MODAL -->
+  <div id="editLogModal" class="modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">✏️ עריכת רשומה</div>
+      <div class="field-label">תאריך החלפה</div>
+      <input type="date" id="elDate">
+      <div class="field-label">עובי / סוג מיתר</div>
+      <input type="text" id="elGauge" placeholder="למשל: .010-.046 Ernie Ball">
+      <div class="field-label">תזכורת להחלפה הבאה</div>
+      <input type="date" id="elNext">
+      <div class="field-label">תמונה חדשה (אופציונלי, תחליף את הקיימת)</div>
+      <input type="file" id="elImg" accept="image/*">
+      <button class="btn-primary" onclick="saveLogEdit()">שמור שינויים</button>
+      <button class="btn-secondary" onclick="closeModal('editLogModal')">ביטול</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script id="appData">
@@ -501,6 +513,7 @@
   <script>
     let guitars = window.STATIC_DATA || JSON.parse(localStorage.getItem('gs_db_v2')) || [];
     let activeIdx = null;
+    let activeLogIdx = null;
 
     // Show iOS install hint if in Safari but not installed
     const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
@@ -667,13 +680,52 @@
         cont.innerHTML = `<div class="log-empty">אין החלפות מתועדות עדיין</div>`;
         return;
       }
-      cont.innerHTML = logs.map(l => `
+      cont.innerHTML = logs.map((l, i) => `
         <div class="log-entry">
-          <div class="log-date">${l.date || '—'}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div class="log-date">${l.date || '—'}</div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="openLogEdit(${i})" style="background:rgba(245,158,11,0.12);color:var(--accent);border:1px solid rgba(245,158,11,0.3);padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;font-family:Assistant,sans-serif;cursor:pointer;">✏️</button>
+              <button onclick="deleteLog(${i})" style="background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;font-family:Assistant,sans-serif;cursor:pointer;">🗑️</button>
+            </div>
+          </div>
           <div class="log-gauge">${l.gauge}</div>
           ${l.next ? `<div class="log-next">החלפה הבאה: ${l.next}</div>` : ''}
           ${l.img ? `<img src="${l.img}" alt="">` : ''}
         </div>`).join('');
+    }
+
+    function deleteLog(logIdx) {
+      if (!confirm('למחוק רשומה זו?')) return;
+      guitars[activeIdx].logs.splice(logIdx, 1);
+      sync();
+      renderLogs();
+      toast('🗑️ רשומה נמחקה');
+    }
+
+    function openLogEdit(logIdx) {
+      activeLogIdx = logIdx;
+      const l = guitars[activeIdx].logs[logIdx];
+      document.getElementById('elDate').value = l.date || '';
+      document.getElementById('elGauge').value = l.gauge || '';
+      document.getElementById('elNext').value = l.next || '';
+      document.getElementById('elImg').value = '';
+      openModal('editLogModal');
+    }
+
+    async function saveLogEdit() {
+      const gauge = document.getElementById('elGauge').value.trim();
+      if (!gauge) { alert('נא להזין סוג/עובי מיתר'); return; }
+      const l = guitars[activeIdx].logs[activeLogIdx];
+      l.date = document.getElementById('elDate').value;
+      l.gauge = gauge;
+      l.next = document.getElementById('elNext').value;
+      const f = document.getElementById('elImg').files[0];
+      if (f) l.img = await toBase64(f);
+      sync();
+      closeModal('editLogModal');
+      renderLogs();
+      toast('✅ רשומה עודכנה!');
     }
 
     function sync() {
@@ -755,6 +807,5 @@
 
     render();
   </script>
-
 </body>
 </html>
