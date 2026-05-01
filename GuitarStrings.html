@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuitarStrings - האפליקציה שלי</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700&display=swap');
+        :root { --bg: #f8fafc; --primary: #1e293b; --accent: #3b82f6; }
+        body { font-family: 'Assistant', sans-serif; background-color: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; color: #333; }
+        header { background: var(--primary); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; font-size: 16px; }
+        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; }
+        .img-preview img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 style="margin:0; font-size: 24px;">GuitarStrings</h1>
+        <p style="margin:5px 0 0; opacity:0.8;">ניהול ומעקב מיתרים מקומי</p>
+    </header>
+
+    <div id="main">
+        <button class="btn" onclick="openModal('addModal')">+ הוספת גיטרה חדשה</button>
+        <div id="list" style="margin-top:20px;"></div>
+        
+        <div style="margin-top: 50px; padding: 20px; border-top: 2px dashed #cbd5e1; background: #fff; border-radius: 12px;">
+            <p style="font-weight:bold; margin-top:0;">ניהול קובץ האפליקציה:</p>
+            <p style="font-size: 13px; color: #64748b;">לחץ כדי לשמור את האפליקציה כקובץ HTML הכולל את כל המידע שלך בתוך תיקיית ה'קבצים'.</p>
+            <button class="btn" style="background:#10b981" onclick="exportFullApp()">שמור אפליקציה מעודכנת לקבצים</button>
+        </div>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h3>גיטרה חדשה</h3>
+            <input id="name" placeholder="שם הגיטרה">
+            <input id="brand" placeholder="יצרן">
+            <input id="model" placeholder="דגם">
+            <input id="date" type="date">
+            <input id="imgs" type="file" multiple accept="image/*">
+            <button class="btn" onclick="saveGuitar()">שמור</button>
+            <button class="btn" style="background:#64748b" onclick="closeModal('addModal')">ביטול</button>
+        </div>
+    </div>
+
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <h3 id="logTitle">יומן מיתרים</h3>
+            <input id="sDate" type="date">
+            <input id="sGauge" placeholder="עובי/סוג מיתר">
+            <input id="sNext" type="date">
+            <input id="sImg" type="file" accept="image/*">
+            <button class="btn" style="background:#10b981" onclick="addLog()">עדכן החלפה</button>
+            <div id="logList" style="margin-top:15px; max-height:200px; overflow-y:auto;"></div>
+            <button class="btn" onclick="closeModal('logModal')">סגור</button>
+        </div>
+    </div>
+
+    <script id="appData">
+        // כאן יישמרו הנתונים במידה ומייצאים את הקובץ
+        window.STATIC_DATA = null;
+    </script>
+
+    <script>
+        // טעינה: עדיפות לנתונים סטטיים מהקובץ, אחרת מה-LocalStorage
+        let guitars = window.STATIC_DATA || JSON.parse(localStorage.getItem('gt_local_db')) || [];
+        let activeIdx = null;
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        async function saveGuitar() {
+            const g = {
+                name: document.getElementById('name').value,
+                brand: document.getElementById('brand').value,
+                model: document.getElementById('model').value,
+                date: document.getElementById('date').value,
+                imgs: [], logs: []
+            };
+            const files = document.getElementById('imgs').files;
+            for(let i=0; i<Math.min(files.length, 2); i++) g.imgs.push(await toBase64(files[i]));
+            guitars.push(g);
+            sync(); closeModal('addModal');
+        }
+
+        function render() {
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            guitars.forEach((g, i) => {
+                const last = g.logs[0] || {gauge: 'טרם תועד', next: '--'};
+                list.innerHTML += `
+                    <div class="card">
+                        <div class="img-preview">${g.imgs.map(m => `<img src="${m}">`).join('')}</div>
+                        <h4 style="margin:10px 0 5px;">${g.name}</h4>
+                        <p style="font-size:12px; color:#666; margin:0;">סט: ${last.gauge} | באה: ${last.next}</p>
+                        <button class="btn" style="background:#1e293b; font-size:14px;" onclick="openLog(${i})">יומן מיתרים</button>
+                    </div>`;
+            });
+        }
+
+        function openLog(i) {
+            activeIdx = i;
+            document.getElementById('logTitle').innerText = 'יומן: ' + guitars[i].name;
+            renderLogs();
+            openModal('logModal');
+        }
+
+        async function addLog() {
+            const log = {
+                date: document.getElementById('sDate').value,
+                gauge: document.getElementById('sGauge').value,
+                next: document.getElementById('sNext').value,
+                img: document.getElementById('sImg').files[0] ? await toBase64(document.getElementById('sImg').files[0]) : null
+            };
+            guitars[activeIdx].logs.unshift(log);
+            sync(); renderLogs();
+        }
+
+        function renderLogs() {
+            const cont = document.getElementById('logList');
+            cont.innerHTML = guitars[activeIdx].logs.map(l => `<div style="font-size:12px; border-bottom:1px solid #eee; padding:5px 0;">${l.date}: ${l.gauge}</div>`).join('');
+        }
+
+        function sync() {
+            localStorage.setItem('gt_local_db', JSON.stringify(guitars));
+            render();
+        }
+
+        // --- פונקציית הקסם: ייצוא האפליקציה כקובץ HTML חדש עם הנתונים בפנים ---
+        function exportFullApp() {
+            const currentHtml = document.documentElement.outerHTML;
+            const dataScript = `window.STATIC_DATA = ${JSON.stringify(guitars)};`;
+            
+            // מחליפים את סקריפט הנתונים הריק בנתונים האמיתיים
+            const newHtml = currentHtml.replace('window.STATIC_DATA = null;', dataScript);
+            
+            const blob = new Blob([newHtml], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "GuitarApp_Backup.html";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        const toBase64 = f => new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(f); });
+        render();
+    </script>
+</body>
+</html>
