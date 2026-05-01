@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -388,6 +389,7 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
   </style>
+
 </head>
 <body>
 
@@ -403,6 +405,7 @@
   </header>
 
   <!-- iOS PWA install hint -->
+
   <div class="install-banner" id="installBanner">
     <h4>📲 התקן כאפליקציה</h4>
     <p>כדי להשתמש ב-GuitarStrings כאפליקציה נפרדת:</p>
@@ -416,11 +419,17 @@
   <div id="list"></div>
 
   <div class="export-section">
-    <p>שמור עותק HTML של האפליקציה עם כל הנתונים שלך</p>
-    <button class="export-btn" onclick="exportFullApp()">⬇️ שמור גיבוי HTML</button>
+    <p>גיבוי ושחזור הנתונים שלך</p>
+    <button class="export-btn" onclick="exportJSON()">⬇️ שמור גיבוי JSON</button>
+    <label style="display:block; margin-top:10px;">
+      <div class="export-btn" style="cursor:pointer; text-align:center;">⬆️ טען גיבוי JSON</div>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+    </label>
+    <button class="export-btn" style="margin-top:10px; color:var(--text2); border-color:var(--border);" onclick="exportFullApp()">💾 שמור גיבוי HTML</button>
   </div>
 
   <!-- ADD GUITAR MODAL -->
+
   <div id="addModal" class="modal">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -440,7 +449,29 @@
     </div>
   </div>
 
+  <!-- EDIT GUITAR MODAL -->
+
+  <div id="editModal" class="modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">✏️ עריכת גיטרה</div>
+      <div class="field-label">שם הגיטרה</div>
+      <input type="text" id="eName" placeholder="שם הגיטרה">
+      <div class="field-label">יצרן</div>
+      <input type="text" id="eBrand" placeholder="Fender, Gibson...">
+      <div class="field-label">דגם</div>
+      <input type="text" id="eModel" placeholder="Player Telecaster...">
+      <div class="field-label">תאריך רכישה</div>
+      <input type="date" id="eDate">
+      <div class="field-label">תמונות חדשות (עד 2, יחליפו את הקיימות)</div>
+      <input type="file" id="eImgs" multiple accept="image/*">
+      <button class="btn-primary" onclick="saveEdit()">שמור שינויים</button>
+      <button class="btn-secondary" onclick="closeModal('editModal')">ביטול</button>
+    </div>
+  </div>
+
   <!-- LOG MODAL -->
+
   <div id="logModal" class="modal">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -554,11 +585,43 @@
               </div>
               <div style="display:flex;gap:8px;">
                 <button class="delete-btn" onclick="deleteGuitar(${i})">מחק</button>
+                <button class="delete-btn" style="color:var(--accent);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.08);" onclick="openEdit(${i})">✏️</button>
                 <button class="log-btn" onclick="openLog(${i})">יומן</button>
               </div>
             </div>
           </div>`;
       }).join('');
+    }
+
+    function openEdit(i) {
+      activeIdx = i;
+      const g = guitars[i];
+      document.getElementById('eName').value = g.name;
+      document.getElementById('eBrand').value = g.brand || '';
+      document.getElementById('eModel').value = g.model || '';
+      document.getElementById('eDate').value = g.date || '';
+      document.getElementById('eImgs').value = '';
+      openModal('editModal');
+    }
+
+    async function saveEdit() {
+      const name = document.getElementById('eName').value.trim();
+      if (!name) { alert('נא להזין שם גיטרה'); return; }
+      const g = guitars[activeIdx];
+      g.name = name;
+      g.brand = document.getElementById('eBrand').value.trim();
+      g.model = document.getElementById('eModel').value.trim();
+      g.date = document.getElementById('eDate').value;
+      const files = document.getElementById('eImgs').files;
+      if (files.length > 0) {
+        g.imgs = [];
+        for (let i = 0; i < Math.min(files.length, 2); i++) {
+          g.imgs.push(await toBase64(files[i]));
+        }
+      }
+      sync();
+      closeModal('editModal');
+      toast('✅ פרטים עודכנו!');
     }
 
     function deleteGuitar(i) {
@@ -618,6 +681,37 @@
       render();
     }
 
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(guitars, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GuitarStrings_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('📥 גיבוי JSON נשמר!');
+    }
+
+    function importJSON(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!Array.isArray(data)) throw new Error('פורמט לא תקין');
+          if (!confirm(`לטעון ${data.length} גיטרות מהגיבוי? הנתונים הנוכחיים יוחלפו.`)) return;
+          guitars = data;
+          sync();
+          toast('✅ גיבוי נטען בהצלחה!');
+        } catch(err) {
+          alert('שגיאה בטעינת הקובץ — ודא שזה קובץ JSON תקין');
+        }
+        input.value = '';
+      };
+      reader.readAsText(file);
+    }
+
     function exportFullApp() {
       const currentHtml = document.documentElement.outerHTML;
       const dataScript = `window.STATIC_DATA = ${JSON.stringify(guitars)};`;
@@ -637,13 +731,30 @@
       m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
     });
 
-    const toBase64 = f => new Promise(r => {
-      const rd = new FileReader();
-      rd.onload = () => r(rd.result);
-      rd.readAsDataURL(f);
-    });
+    const toBase64 = f => compressImage(f);
+
+    function compressImage(file, maxWidth = 800, quality = 0.7) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     render();
   </script>
+
 </body>
 </html>
