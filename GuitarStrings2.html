@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GuitarStrings">
+  <meta name="theme-color" content="#0f172a">
+  <title>GuitarStrings</title>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><text y='.9em' font-size='72' x='50%' text-anchor='middle'>🎸</text></svg>">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap');
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #263348;
+      --border: #334155;
+      --accent: #f59e0b;
+      --accent2: #fbbf24;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --green: #10b981;
+      --red: #ef4444;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Assistant', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding: calc(var(--safe-top) + 60px) 16px calc(var(--safe-bottom) + 20px);
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      background: rgba(15,23,42,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: calc(var(--safe-top) + 12px) 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title .icon { font-size: 24px; }
+
+    .header-title h1 {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-title p {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 1px;
+    }
+
+    .add-btn-header {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 0 rgba(245,158,11,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .add-btn-header:active { transform: scale(0.92); }
+
+    /* EMPTY STATE */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text2);
+    }
+    .empty .big { font-size: 64px; margin-bottom: 16px; }
+    .empty h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+    .empty p { font-size: 14px; line-height: 1.6; }
+
+    /* GUITAR CARDS */
+    .guitar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s;
+    }
+    .guitar-card:active { transform: scale(0.98); }
+
+    .guitar-card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      background: radial-gradient(circle at top right, rgba(245,158,11,0.08), transparent 70%);
+      pointer-events: none;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card-imgs {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .card-imgs img {
+      width: 56px; height: 56px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .card-img-placeholder {
+      width: 56px; height: 56px;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      color: var(--text2);
+    }
+
+    .card-info { flex: 1; min-width: 0; }
+    .card-name { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .card-brand { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .status-ok { background: rgba(16,185,129,0.15); color: var(--green); }
+    .status-due { background: rgba(239,68,68,0.15); color: var(--red); }
+    .status-none { background: rgba(148,163,184,0.12); color: var(--text2); }
+
+    .card-last {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 8px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-btn {
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Assistant', sans-serif;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .log-btn:active { opacity: 0.8; }
+
+    .delete-btn {
+      background: rgba(239,68,68,0.12);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.2);
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Assistant', sans-serif;
+      cursor: pointer;
+    }
+
+    /* MODALS */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+      padding: 0;
+    }
+    .modal.open { display: flex; }
+
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 500px;
+      padding: 20px 20px calc(var(--safe-bottom) + 20px);
+      max-height: 90dvh;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+    }
+
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+
+    input[type=text], input[type=date], input[type=file] {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: 'Assistant', sans-serif;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type=text]:focus, input[type=date]:focus {
+      border-color: var(--accent);
+    }
+    input[type=file] { color: var(--text2); font-size: 13px; padding: 10px; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'Assistant', sans-serif;
+      cursor: pointer;
+      margin-top: 18px;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:active { opacity: 0.85; }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Assistant', sans-serif;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn-green {
+      width: 100%;
+      padding: 13px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Assistant', sans-serif;
+      cursor: pointer;
+      margin-top: 14px;
+    }
+
+    /* LOG LIST */
+    .log-entry {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+    }
+    .log-entry .log-date { font-size: 12px; color: var(--accent); font-weight: 600; }
+    .log-entry .log-gauge { font-size: 15px; font-weight: 600; color: var(--text); margin: 3px 0; }
+    .log-entry .log-next { font-size: 12px; color: var(--text2); }
+    .log-entry img { width: 100%; border-radius: 8px; margin-top: 8px; max-height: 120px; object-fit: cover; }
+
+    .log-empty { text-align: center; color: var(--text2); font-size: 14px; padding: 20px; }
+
+    /* EXPORT SECTION */
+    .export-section {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .export-section p { font-size: 13px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+    .export-btn {
+      background: var(--surface2);
+      color: var(--green);
+      border: 1px solid rgba(16,185,129,0.3);
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'Assistant', sans-serif;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    /* PWA INSTALL BANNER */
+    .install-banner {
+      background: linear-gradient(135deg, #1e293b, #263348);
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      display: none;
+    }
+    .install-banner.show { display: block; }
+    .install-banner h4 { font-size: 14px; color: var(--accent); margin-bottom: 4px; }
+    .install-banner p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+    .install-banner ol { font-size: 12px; color: var(--text2); padding-right: 18px; margin-top: 6px; line-height: 1.8; }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 20px);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <span class="icon">🎸</span>
+      <div>
+        <h1>GuitarStrings</h1>
+        <p>ניהול מיתרים</p>
+      </div>
+    </div>
+    <button class="add-btn-header" onclick="openAdd()" aria-label="הוסף גיטרה">+</button>
+  </header>
+
+  <!-- iOS PWA install hint -->
+  <div class="install-banner" id="installBanner">
+    <h4>📲 התקן כאפליקציה</h4>
+    <p>כדי להשתמש ב-GuitarStrings כאפליקציה נפרדת:</p>
+    <ol>
+      <li>לחץ על כפתור השיתוף ⬆️ בסרגל Safari</li>
+      <li>בחר <strong>"הוסף למסך הבית"</strong></li>
+      <li>לחץ <strong>"הוסף"</strong></li>
+    </ol>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="export-section">
+    <p>שמור עותק HTML של האפליקציה עם כל הנתונים שלך</p>
+    <button class="export-btn" onclick="exportFullApp()">⬇️ שמור גיבוי HTML</button>
+  </div>
+
+  <!-- ADD GUITAR MODAL -->
+  <div id="addModal" class="modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🎸 גיטרה חדשה</div>
+      <div class="field-label">שם הגיטרה</div>
+      <input type="text" id="gName" placeholder="למשל: Telecaster שלי">
+      <div class="field-label">יצרן</div>
+      <input type="text" id="gBrand" placeholder="Fender, Gibson...">
+      <div class="field-label">דגם</div>
+      <input type="text" id="gModel" placeholder="Player Telecaster...">
+      <div class="field-label">תאריך רכישה</div>
+      <input type="date" id="gDate">
+      <div class="field-label">תמונות (עד 2)</div>
+      <input type="file" id="gImgs" multiple accept="image/*">
+      <button class="btn-primary" onclick="saveGuitar()">שמור גיטרה</button>
+      <button class="btn-secondary" onclick="closeModal('addModal')">ביטול</button>
+    </div>
+  </div>
+
+  <!-- LOG MODAL -->
+  <div id="logModal" class="modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="logTitle">יומן מיתרים</div>
+      <div id="logList"></div>
+      <hr style="border-color: var(--border); margin: 16px 0;">
+      <div style="font-size:13px; font-weight:600; color:var(--accent); margin-bottom:12px;">➕ עדכון החלפה</div>
+      <div class="field-label">תאריך החלפה</div>
+      <input type="date" id="sDate">
+      <div class="field-label">עובי / סוג מיתר</div>
+      <input type="text" id="sGauge" placeholder="למשל: .010-.046 Ernie Ball">
+      <div class="field-label">תזכורת להחלפה הבאה</div>
+      <input type="date" id="sNext">
+      <div class="field-label">תמונה (אופציונלי)</div>
+      <input type="file" id="sImg" accept="image/*">
+      <button class="btn-green" onclick="addLog()">עדכן החלפה</button>
+      <button class="btn-secondary" onclick="closeModal('logModal')">סגור</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script id="appData">
+    window.STATIC_DATA = null;
+  </script>
+
+  <script>
+    let guitars = window.STATIC_DATA || JSON.parse(localStorage.getItem('gs_db_v2')) || [];
+    let activeIdx = null;
+
+    // Show iOS install hint if in Safari but not installed
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = window.navigator.standalone === true;
+    if (isIOS && !isStandalone) {
+      document.getElementById('installBanner').classList.add('show');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function openAdd() {
+      document.getElementById('gName').value = '';
+      document.getElementById('gBrand').value = '';
+      document.getElementById('gModel').value = '';
+      document.getElementById('gDate').value = '';
+      openModal('addModal');
+    }
+
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    async function saveGuitar() {
+      const name = document.getElementById('gName').value.trim();
+      if (!name) { alert('נא להזין שם גיטרה'); return; }
+      const g = {
+        name,
+        brand: document.getElementById('gBrand').value.trim(),
+        model: document.getElementById('gModel').value.trim(),
+        date: document.getElementById('gDate').value,
+        imgs: [], logs: []
+      };
+      const files = document.getElementById('gImgs').files;
+      for (let i = 0; i < Math.min(files.length, 2); i++) {
+        g.imgs.push(await toBase64(files[i]));
+      }
+      guitars.push(g);
+      sync();
+      closeModal('addModal');
+      toast('✅ גיטרה נוספה!');
+    }
+
+    function getStatus(g) {
+      if (!g.logs.length) return { label: 'טרם תועד', cls: 'status-none', dot: '⚪' };
+      const last = g.logs[0];
+      if (!last.next) return { label: last.gauge || '—', cls: 'status-ok', dot: '🟡' };
+      const daysLeft = Math.ceil((new Date(last.next) - new Date()) / 86400000);
+      if (daysLeft < 0) return { label: `באיחור ${Math.abs(daysLeft)} יום`, cls: 'status-due', dot: '🔴' };
+      if (daysLeft <= 14) return { label: `עוד ${daysLeft} יום`, cls: 'status-due', dot: '🟠' };
+      return { label: `עוד ${daysLeft} יום`, cls: 'status-ok', dot: '🟢' };
+    }
+
+    function render() {
+      const list = document.getElementById('list');
+      if (!guitars.length) {
+        list.innerHTML = `<div class="empty"><div class="big">🎸</div><h3>אין גיטרות עדיין</h3><p>לחץ על + למעלה כדי להוסיף את הגיטרה הראשונה שלך</p></div>`;
+        return;
+      }
+      list.innerHTML = guitars.map((g, i) => {
+        const s = getStatus(g);
+        const imgHtml = g.imgs.length
+          ? g.imgs.map(m => `<img src="${m}" alt="">`).join('')
+          : `<div class="card-img-placeholder">🎸</div>`;
+        const lastLog = g.logs[0];
+        return `
+          <div class="guitar-card">
+            <div class="card-top">
+              <div class="card-imgs">${imgHtml}</div>
+              <div class="card-info">
+                <div class="card-name">${g.name}</div>
+                <div class="card-brand">${[g.brand, g.model].filter(Boolean).join(' · ') || 'ללא פרטים'}</div>
+                <span class="status-badge ${s.cls}">${s.dot} ${s.label}</span>
+              </div>
+            </div>
+            <div class="card-last">
+              <div>
+                ${lastLog ? `<span style="color:var(--text2);font-size:12px;">סט אחרון: ${lastLog.gauge || '—'} · ${lastLog.date || '—'}</span>` : '<span style="color:var(--text2);font-size:12px;">אין היסטוריה עדיין</span>'}
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="delete-btn" onclick="deleteGuitar(${i})">מחק</button>
+                <button class="log-btn" onclick="openLog(${i})">יומן</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function deleteGuitar(i) {
+      if (!confirm(`למחוק את "${guitars[i].name}"?`)) return;
+      guitars.splice(i, 1);
+      sync();
+      toast('🗑️ נמחק');
+    }
+
+    function openLog(i) {
+      activeIdx = i;
+      document.getElementById('logTitle').textContent = '🎵 ' + guitars[i].name;
+      document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('sGauge').value = '';
+      document.getElementById('sNext').value = '';
+      renderLogs();
+      openModal('logModal');
+    }
+
+    async function addLog() {
+      const gauge = document.getElementById('sGauge').value.trim();
+      if (!gauge) { alert('נא להזין סוג/עובי מיתר'); return; }
+      const log = {
+        date: document.getElementById('sDate').value,
+        gauge,
+        next: document.getElementById('sNext').value,
+        img: null
+      };
+      const f = document.getElementById('sImg').files[0];
+      if (f) log.img = await toBase64(f);
+      guitars[activeIdx].logs.unshift(log);
+      sync();
+      renderLogs();
+      toast('✅ יומן עודכן!');
+      document.getElementById('sGauge').value = '';
+      document.getElementById('sNext').value = '';
+    }
+
+    function renderLogs() {
+      const cont = document.getElementById('logList');
+      const logs = guitars[activeIdx].logs;
+      if (!logs.length) {
+        cont.innerHTML = `<div class="log-empty">אין החלפות מתועדות עדיין</div>`;
+        return;
+      }
+      cont.innerHTML = logs.map(l => `
+        <div class="log-entry">
+          <div class="log-date">${l.date || '—'}</div>
+          <div class="log-gauge">${l.gauge}</div>
+          ${l.next ? `<div class="log-next">החלפה הבאה: ${l.next}</div>` : ''}
+          ${l.img ? `<img src="${l.img}" alt="">` : ''}
+        </div>`).join('');
+    }
+
+    function sync() {
+      try { localStorage.setItem('gs_db_v2', JSON.stringify(guitars)); } catch(e) {}
+      render();
+    }
+
+    function exportFullApp() {
+      const currentHtml = document.documentElement.outerHTML;
+      const dataScript = `window.STATIC_DATA = ${JSON.stringify(guitars)};`;
+      const newHtml = currentHtml.replace('window.STATIC_DATA = null;', dataScript);
+      const blob = new Blob([newHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'GuitarStrings_backup.html';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('📥 גיבוי נשמר!');
+    }
+
+    // Close modal on backdrop tap
+    document.querySelectorAll('.modal').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    });
+
+    const toBase64 = f => new Promise(r => {
+      const rd = new FileReader();
+      rd.onload = () => r(rd.result);
+      rd.readAsDataURL(f);
+    });
+
+    render();
+  </script>
+</body>
+</html>
